@@ -12,9 +12,6 @@ from app.model import Task, TaskStatus, TaskNotFound, parse_status
 from app.store.redis import key_task
 
 
-
-
-
 def task_to_hash(task: Task) -> dict[str, Any]:
     "Convert a task into redis hash field."
     return {

@@ -1,5 +1,7 @@
 from .redis import (
     new_redis,
+    key_task,
+    node_tasks_key,
     KEY_READY,
     KEY_PROCESSING,
     KEY_DELAYED,
@@ -7,4 +9,4 @@ from .redis import (
 )
 from .task import TaskStore
 
-__all__ = ["TaskStore", "new_redis", "KEY_READY", "KEY_PROCESSING", "KEY_DELAYED", "KEY_METRICS"]
+__all__ = ["TaskStore", "new_redis", "key_task", "node_tasks_key", "KEY_READY", "KEY_PROCESSING", "KEY_DELAYED", "KEY_METRICS"]

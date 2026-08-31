@@ -19,6 +19,14 @@ class Config(BaseSettings):
 
     worker_count: int = Field(5, validation_alias="WORKER_COUNT")
 
+    visibility_timeout_ms: int = Field(30000, validation_alias="VISIBILITY_TIMEOUT_MS")
+
+
+    # duration helpers
+    @property
+    def visibility_timeout(self) -> float:
+        return self.visibility_timeout_ms / 1000
+
     # Validation
     @model_validator(mode="after")
     def _validate(self) -> Config:
@@ -30,6 +38,8 @@ class Config(BaseSettings):
             raise ValueError("config: METRICS_PORT must not be empty")
         if self.worker_count <= 0:
             raise ValueError(f"config: WORKER_COUNT must be > 0, got {self.worker_count}")
+        if self.visibility_timeout_ms <= 0:
+            raise ValueError("config: VISIBILITY_TIMEOUT_MS must be > 0")
         return self
 
 

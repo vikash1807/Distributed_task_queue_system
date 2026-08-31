@@ -14,6 +14,7 @@ KEY_READY = "taskqueue:ready" # ZSET, score = -priority (higher priority pops fi
 KEY_DELAYED = "taskqueue:delayed"  # ZSET, score = execute-at (unix seconds)
 KEY_PROCESSING = "taskqueue:processing"  # ZSET, score = lease deadline (ms)
 KEY_METRICS = "taskqueue:metrics"  # HASH of counters
+KEY_NODES = "taskqueue:nodes"  # SET of known node IDs
 
 
 # Task records live under this prefix : taskqueue:task:{id} (HASH)
@@ -23,6 +24,12 @@ KEY_TASK_PREFIX = "taskqueue:task:"
 def key_task(task_id: str) -> str:
     """Return the HASH key holding a task's canonical record."""
     return KEY_TASK_PREFIX + task_id
+
+
+def node_tasks_key(node_id: str) -> str:
+    """SET key holding the task IDs a node currently leases."""
+    return f"taskqueue:node:{node_id}:tasks"
+
 
 def new_redis(
     addr: str,
