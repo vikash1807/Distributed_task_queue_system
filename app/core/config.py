@@ -18,6 +18,10 @@ class Config(BaseSettings):
     metrics_port: int = Field(9100, validation_alias="METRICS_PORT")
 
     worker_count: int = Field(5, validation_alias="WORKER_COUNT")
+    poll_interval_ms: int = Field(500, validation_alias="POLL_INTERVAL_MS")
+    
+    # Budget for post-cancellation Redis writes on shutdown.
+    drain_timeout_ms: int = Field(5000, validation_alias="DRAIN_TIMEOUT_MS")
 
     visibility_timeout_ms: int = Field(30000, validation_alias="VISIBILITY_TIMEOUT_MS")
 
@@ -26,6 +30,15 @@ class Config(BaseSettings):
     @property
     def visibility_timeout(self) -> float:
         return self.visibility_timeout_ms / 1000
+    
+    @property
+    def poll_interval(self) -> float:
+        return self.poll_interval_ms / 1000
+
+    @property
+    def drain_timeout(self) -> float:
+        return self.drain_timeout_ms / 1000
+
 
     # Validation
     @model_validator(mode="after")
