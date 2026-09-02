@@ -98,9 +98,9 @@ class RedisBroker:
         Returns:
             The claimed Task, or None when the ready queue is empty.
         """
-        deadline = self._lease_deadline
+        deadline = self._lease_deadline()
 
-        result = await self._dequeue_script(
+        result = await self._dequeue(
             keys=[
                 KEY_READY,
                 KEY_PROCESSING,
@@ -135,7 +135,7 @@ class RedisBroker:
         Raises:
             LeaseNotHeld: if this node does not own the lease.
         """
-        result = await self._ack_script(
+        result = await self._ack(
             keys=[
                 KEY_PROCESSING,
                 key_task(task_id),
@@ -157,7 +157,7 @@ class RedisBroker:
         Raises:
             LeaseNotHeld: if this node does not own the lease.
         """
-        result = await self._nack_script(
+        result = await self._nack(
             keys=[
                 KEY_PROCESSING,
                 key_task(task_id),
@@ -189,7 +189,7 @@ class RedisBroker:
             (time.time() + extension) * 1000
         )
 
-        result = await self._extend_script(
+        result = await self._extend(
             keys=[KEY_PROCESSING],
             args=[
                 task_id,
