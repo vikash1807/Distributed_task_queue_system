@@ -11,8 +11,10 @@ logger = logging.getLogger(__name__)
 
 
 KEY_READY = "taskqueue:ready" # ZSET, score = -priority (higher priority pops first)
+KEY_READY_SIGNAL = "taskqueue:ready:signal"
 KEY_DELAYED = "taskqueue:delayed"  # ZSET, score = execute-at (unix seconds)
 KEY_PROCESSING = "taskqueue:processing"  # ZSET, score = lease deadline (ms)
+KEY_DEADLETTER = "taskqueue:deadletter" # LIST of failedTask
 KEY_METRICS = "taskqueue:metrics"  # HASH of counters
 KEY_NODES = "taskqueue:nodes"  # SET of known node IDs
 
