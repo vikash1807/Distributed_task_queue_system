@@ -9,8 +9,8 @@ from app.broker import RedisBroker
 from app.core.config import load_config
 from app.core.logging import setup_logging
 from app.handler import create_registry
-from app.queue import PriorityQueue
-from app.store import new_redis, TaskStore
+from app.queue import PriorityQueue, DelayedScheduler
+from app.store import new_redis, TaskStore, DeadLetterStore
 from app.worker import Executor, ExecutorDeps, Pool
 
 setup_logging()
@@ -34,6 +34,9 @@ async def run() -> None:
         task_store = TaskStore(redis)
         task_queue = PriorityQueue(redis, task_store)
 
+        delayed = DelayedScheduler(redis, task_queue, task_store)
+        dead_letter = DeadLetterStore(redis)
+
         redis_broker = RedisBroker(
             client=redis,
             task_store=task_store,
@@ -46,6 +49,9 @@ async def run() -> None:
             ExecutorDeps(
                 broker=redis_broker,
                 handlers=create_registry(),
+                delayed=delayed,
+                task_store=task_store,
+                dead_letter=dead_letter,
                 drain_timeout=config.drain_timeout
             )
         )

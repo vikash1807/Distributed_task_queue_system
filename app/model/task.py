@@ -6,7 +6,7 @@ import enum
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class TaskNotFound(Exception):
@@ -56,8 +56,11 @@ class Task(BaseModel):
         d["max_retries"] = self.max_retries
         d["retries"] = self.retries
         d["status"] = self.status.value
-        d["created_at"] = self.created_at
-
+        d["created_at"] = (
+            self.created_at.isoformat() 
+            if self.created_at is not None 
+            else None
+        )
         if self.error:  # omit empty
             d["error"] = self.error
         if self.owner:  # omit empty
@@ -66,6 +69,11 @@ class Task(BaseModel):
 
     @classmethod
     def from_json_dict(cls, d: dict[str, Any]) -> "Task":
+        
+        created_at = d.get("created_at")
+        if created_at is not None:
+            created_at = datetime.fromisoformat(created_at)
+
         return cls(
             id=d.get("id", ""),
             type=d.get("type", ""),
@@ -75,10 +83,41 @@ class Task(BaseModel):
             max_retries=int(d.get("max_retries", 0) or 0),
             retries=int(d.get("retries", 0) or 0),
             status=parse_status(d.get("status", "pending")),
-            created_at=d.get("created_at"),
+            created_at=created_at,
             error=d.get("error", ""),
             owner=d.get("owner", ""),
         )
+
+
+class FailedTask(BaseModel):
+    task: Task = Field(default_factory=Task)
+    failed_at: Optional[datetime] = None
+    reason: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "task": self.task.to_dict(),
+            "failed_at": (
+                self.failed_at.isoformat() 
+                if self.failed_at is not None 
+                else None
+            ),
+            "reason": self.reason,
+        }
+
+    @classmethod
+    def from_json_dict(cls, data: dict[str, Any]) -> "FailedTask":
+        failed_at = data.get("failed_at")
+
+        if failed_at is not None:
+            failed_at = datetime.fromisoformat(failed_at)
+
+        return cls(
+            task=Task.from_json_dict(data.get("task", {})),
+            failed_at=failed_at,
+            reason=data.get("reason", ""),
+        )
+    
 
 class Metrics(BaseModel):
     total_processed: int = 0
