@@ -70,8 +70,8 @@ class Pool:
             except asyncio.CancelledError:
                 break
 
-            except Exception as exc:
-                logger.error("worker error worker_id=%d error=%s", worker_id, exc)
+            except Exception:
+                logger.exception("worker error worker_id=%d", worker_id)
 
                 await asyncio.sleep(self.poll_interval)
         
