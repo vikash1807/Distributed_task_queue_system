@@ -9,6 +9,7 @@ import logging
 
 from app.broker import RedisBroker
 from app.worker.executor import Executor
+from app.core import settings as config
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,12 @@ class Pool:
         logger.info("worker pool stopped")
     
     async def _worker(self, worker_id: int) -> None:
-        """Claim and execute tasks until shutdown."""
+        """Claim and execute tasks until shutdown.
+        Workers use the ready ZSET as the source of truth. When the queue is
+        empty, they block on the Redis doorbell instead of continuously polling.
+        The doorbell only wakes a worker; after waking, the worker checks the
+        ready queue again.
+        """
 
         logger.info("worker started worker=%d", worker_id)
 
@@ -64,7 +70,7 @@ class Pool:
                 task = await self.broker.dequeue()
 
                 if task is None:
-                    await asyncio.sleep(self.poll_interval)
+                    await self.broker.wait_for_work(config.signal_block)
                     continue
                     
                 await self.executor.execute(task)

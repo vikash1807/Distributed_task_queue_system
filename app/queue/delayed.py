@@ -10,6 +10,7 @@ from typing import Optional
 import asyncio
 import redis.asyncio as redis
 
+from app.core import settings as config
 from app.model import Task
 from app.queue.queue import PriorityQueue
 from app.store import (
@@ -103,7 +104,7 @@ class DelayedScheduler:
             args=[
                 now,
                 str(batch_size),
-                str(1024), # passing a temp no. for signal cap
+                str(config.signal_cap)
             ],
         )
 

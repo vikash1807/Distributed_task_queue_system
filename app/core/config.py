@@ -72,3 +72,5 @@ class Config(BaseSettings):
 def load_config() -> Config:
     """Read configuration from enviornment, apply defaults, and validate."""
     return Config()
+
+settings = load_config()
