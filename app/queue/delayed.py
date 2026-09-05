@@ -70,6 +70,7 @@ class DelayedScheduler:
     async def run(self) -> None:
         """Continuously promote due tasks from delayed to ready every second."""
 
+        logger.info("delayed scheduler started")
         try:
             while True:
                 await asyncio.sleep(1)
@@ -102,7 +103,7 @@ class DelayedScheduler:
             args=[
                 now,
                 str(batch_size),
-                str(self.signal_cap),
+                str(1024), # passing a temp no. for signal cap
             ],
         )
 
