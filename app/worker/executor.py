@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from app.broker import LeaseNotHeld, RedisBroker
-from app.handler import Registry, create_registry
+from app.handler import Registry
 from app.model import Task, TaskStatus, FailedTask
 from app.queue import DelayedScheduler
 from app.store import TaskStore, DeadLetterStore
@@ -96,7 +96,7 @@ class Executor:
         else:
             await self._deadletter(task)
     
-    async def _retry(self, task: Task) -> None:
+    async def _retry_task(self, task: Task) -> None:
         """Increment retry count and schedule the task with exponential backoff time."""
 
         task.retries += 1

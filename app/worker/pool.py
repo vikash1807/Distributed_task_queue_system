@@ -1,3 +1,5 @@
+# app/worker/pool.py
+
 """Async worker pool for claiming and executing tasks."""
 
 from __future__ import annotations
@@ -75,4 +77,4 @@ class Pool:
 
                 await asyncio.sleep(self.poll_interval)
         
-        logger.info("worker stopped workd_id = %d", worker_id)
+        logger.info("worker stopped worker_id = %d", worker_id)

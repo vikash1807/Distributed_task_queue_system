@@ -3,6 +3,7 @@ import logging
 import sys
 from contextlib import asynccontextmanager
 
+import asyncio
 import uvicorn
 from fastapi import FastAPI
 
@@ -28,6 +29,7 @@ def build_config():
 
 _cfg = build_config()
 
+schedule_task = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -43,12 +45,23 @@ async def lifespan(app: FastAPI):
 
         app.state.container = build_container(redis, _cfg)
 
+        scheduler = app.state.container.delayed_scheduler
+        schedule_task = asyncio.create_task(scheduler.run())
+
         yield
 
     except Exception as exc:
         logger.error("redis connection error: %s", exc)
     
     finally:
+
+        if schedule_task is not None:
+            schedule_task.cancel()
+            try:
+                await schedule_task
+            except asyncio.CancelledError:
+                pass
+
         await redis.close()
         logger.info("redis connection closed")
 
