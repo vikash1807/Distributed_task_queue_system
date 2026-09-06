@@ -70,17 +70,24 @@ class Pool:
                 task = await self.broker.dequeue()
 
                 if task is None:
+                    # No task is currently ready. Wait for a doorbell signal
+                    # The timeout is bounded by signal_block so the worker can
+                    # periodically check _stop and exit during shutdown.
                     await self.broker.wait_for_work(config.signal_block)
                     continue
-                    
+
+                # A task was successfully claimed; execute it. 
                 await self.executor.execute(task)
             
             except asyncio.CancelledError:
+                # Worker cancellation is expected during shutdown.
                 break
 
             except Exception:
-                logger.exception("worker error worker_id=%d", worker_id)
+                # A broker/worker error should not terminate the worker.
+                # Wait briefly before trying again to avoid a tight error loop.
 
+                logger.exception("worker error worker_id=%d", worker_id)
                 await asyncio.sleep(self.poll_interval)
         
         logger.info("worker stopped worker_id = %d", worker_id)
