@@ -2,13 +2,22 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Optional
 
 import redis.asyncio as redis
 
+from app.core import settings
 from app.model import Task, TaskNotFound
-from app.store import TaskStore, KEY_READY
+from app.store import TaskStore, KEY_READY, KEY_READY_SIGNAL
 
+
+SCRIPTS_DIR = Path(__file__).parent / "scripts"
+
+
+def load_script(name: str) -> str:
+    """Read a Lua script from the broker's scripts directory."""
+    return (SCRIPTS_DIR / name).read_text(encoding="utf-8")
 
 
 class PriorityQueue:
@@ -16,13 +25,21 @@ class PriorityQueue:
     def __init__(self, client: redis.Redis, task_store: TaskStore):
         self.task_store = task_store
         self.client = client
+        self._enqueue = client.register_script(load_script("enqueue.lua"))
 
     async def enqueue(self, task: Task) -> None:
-        """Add a task ID to ready (score = -priority)."""
+        """Add a task ID to ready (score = -priority), then ring the doorbell."""
 
-        await self.client.zadd(
-            KEY_READY,
-            {task.id : float(-task.priority)}
+        await self._enqueue(
+            keys=[
+                KEY_READY,
+                KEY_READY_SIGNAL
+            ],
+            args=[
+                task.id,
+                task.priority,
+                settings.signal_cap
+            ]
         )
     
     async def dequeue(self) -> Optional[Task]:

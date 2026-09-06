@@ -20,12 +20,13 @@ import redis.asyncio as redis
 from app.model import Task, TaskNotFound
 from app.queue import PriorityQueue
 from app.store import (
-    TaskStore,
-    KEY_READY,
-    KEY_PROCESSING,
-    KEY_TASK_PREFIX,
     key_task,
     node_tasks_key,
+    KEY_PROCESSING,
+    KEY_READY,
+    KEY_READY_SIGNAL,
+    KEY_TASK_PREFIX,
+    TaskStore,
 )
 
 SCRIPTS_DIR = Path(__file__).parent / "scripts"
@@ -197,4 +198,8 @@ class RedisBroker:
             ],
         )
         if int(result) == 0:
-                    raise LeaseNotHeld(task_id)
+            raise LeaseNotHeld(task_id)
+        
+    async def wait_for_work(self, timeout: float):
+        """Block on the ready doorbell for up to ``timeout`` seconds."""
+        await self.client.blpop(KEY_READY_SIGNAL, timeout)
