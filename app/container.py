@@ -33,6 +33,7 @@ def build_container(client: redis.Redis, config: Config) -> AppContainer:
     task_service = TaskService(
         task_store=task_store,
         task_queue=task_queue,
+        delayed_queue=delayed_scheduler,
         dead_letter=dead_letter,
     )
 
