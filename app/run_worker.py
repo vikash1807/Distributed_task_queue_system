@@ -27,10 +27,17 @@ async def run() -> None:
     )
 
     try:
-        await redis.ping()
+        # Fail fast if Redis is unavailable. There is no point starting
+        # workers or the delayed scheduler without a working Redis connection.
+        try:
+            await redis.ping()
+        except Exception:
+            logger.exception("failed to connect to redis: %s", config.redis_addr)
+            raise
         
         logger.info("connected to redis: %s", config.redis_addr)
 
+        # Build application dependencies.
         task_store = TaskStore(redis)
         task_queue = PriorityQueue(redis, task_store)
 
@@ -63,19 +70,37 @@ async def run() -> None:
             poll_interval=config.poll_interval
         )
 
-        await pool.start()
-
         try:
+            await pool.start()
+
+            logger.info("worker process started workers=%s", config.worker_count)
+            # Keep the process alive until it receives SIGINT/SIGTERM.
             await asyncio.Event().wait()
+
+        except asyncio.CancelledError:
+            # Propagate cancellation after cleanup in finally blocks.
+            logger.info("worker process cancellation requested")
+            raise
+        except Exception:
+            logger.exception("worker process failed")
+            raise
+
         finally:
             await pool.stop()
         
     finally:
-        await redis.close()
+        await redis.aclose()
         logger.info("redis connection closed")
-    
+
+
 def main() -> None:
-    asyncio.run(run())
+    """Run the worker application."""
+
+    try:
+        asyncio.run(run())
+    except KeyboardInterrupt:
+        # Ctrl+C is an expected way to stop the worker process.
+        logger.info("worker process interrupted")
 
 if __name__ == "__main__":
     main()

@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.model import Task, TaskStatus, FailedTask
-from app.queue import PriorityQueue
+from app.queue import PriorityQueue, DelayedScheduler
 from app.store import TaskStore, DeadLetterStore
 
 
@@ -26,11 +26,13 @@ class TaskService:
         self,
         task_store: TaskStore,
         task_queue: PriorityQueue,
+        delayed_queue: DelayedScheduler,
         dead_letter: DeadLetterStore,
     ) -> None:
         self.task_store = task_store
         self.task_queue = task_queue
         self.dead_letter = dead_letter
+        self.delayed_queue = delayed_queue
 
     async def submit_task(
         self,
@@ -59,7 +61,11 @@ class TaskService:
         )
 
         await self.task_store.save(task)
-        await self.task_queue.enqueue(task)
+
+        if delay > 0:
+            await self.delayed_queue.schedule(task, delay)
+        else:
+            await self.task_queue.enqueue(task)
 
         return task
 
