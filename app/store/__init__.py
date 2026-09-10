@@ -12,10 +12,12 @@ from .redis import (
 )
 from .task import TaskStore
 from .deadletter import DeadLetterStore
+from .metrics import MetricStore
 
 __all__ = [
     "TaskStore",
     "DeadLetterStore",
+    "MetricStore",
     "new_redis",
     "key_task",
     "node_tasks_key",

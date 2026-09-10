@@ -3,6 +3,8 @@ from .task import (
     Task,
     TaskNotFound,
     FailedTask,
+    Metrics,
+    EnhancedMetrics,
     parse_status
 )
 
@@ -11,5 +13,7 @@ __all__ = [
     "TaskStatus",
     "TaskNotFound",
     "FailedTask",
+    "Metrics",
+    "EnhancedMetrics",
     "parse_status"
 ]
