@@ -14,7 +14,7 @@ from app.broker import LeaseNotHeld, RedisBroker
 from app.handler import Registry
 from app.model import Task, TaskStatus, FailedTask
 from app.queue import DelayedScheduler
-from app.store import TaskStore, DeadLetterStore
+from app.store import TaskStore, DeadLetterStore, MetricStore
 
 
 
@@ -35,6 +35,7 @@ class ExecutorDeps:
     broker: RedisBroker
     handlers: Registry
     task_store: TaskStore
+    metric_store: MetricStore
     delayed: DelayedScheduler
     dead_letter: DeadLetterStore
     drain_timeout: float = DEFAULT_DRAIN_TIMEOUT
@@ -45,6 +46,7 @@ class Executor:
         self.broker = deps.broker
         self.handlers = deps.handlers
         self.task_store = deps.task_store
+        self.metric_store = deps.metric_store
         self.delayed = deps.delayed
         self.dead_letter = deps.dead_letter
         self.drain_timeout = deps.drain_timeout
@@ -67,8 +69,11 @@ class Executor:
             )
 
             await self.broker.ack(task.id)
+            
+            # update processed metric count
+            await self.metric_store.incr_processed()
 
-            logger.info("task completed task_id=%s detai=%s", task.id, result.detail)
+            logger.info("task completed task_id=%s detail=%s", task.id, result.detail)
         
         except LeaseNotHeld:
             logger.exception("lease no longer hold task_id=%s", task.id)
@@ -84,6 +89,9 @@ class Executor:
                 logger.exception("lease no longer held while nacking task_id=%s", task.id)
 
                 return
+
+            # update failed task metric count
+            await self.metric_store.incr_failed()
 
             await self._handle_failure(task)
 
@@ -101,6 +109,9 @@ class Executor:
 
         task.retries += 1
         task.status = TaskStatus.PENDING
+
+        # update retries task metric count
+        await self.metric_store.incr_retries()
 
         delay = backoff_delay(task.retries)
         execute_at = time.time() + delay

@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import Request
 
 from app.container import AppContainer
-from app.service.task import TaskService
+from app.service import TaskService, MetricService
 
 
 def get_container(request: Request) -> AppContainer:
@@ -19,3 +19,6 @@ def get_container(request: Request) -> AppContainer:
 
 def get_task_service(request: Request) -> TaskService:
     return get_container(request).task_service
+
+def get_metrics_service(request: Request) -> MetricService:
+    return get_container(request).metric_service

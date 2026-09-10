@@ -10,7 +10,7 @@ from app.core.config import load_config
 from app.core.logging import setup_logging
 from app.handler import create_registry
 from app.queue import PriorityQueue, DelayedScheduler
-from app.store import new_redis, TaskStore, DeadLetterStore
+from app.store import new_redis, TaskStore, DeadLetterStore, MetricStore
 from app.worker import Executor, ExecutorDeps, Pool
 
 setup_logging()
@@ -39,6 +39,7 @@ async def run() -> None:
 
         # Build application dependencies.
         task_store = TaskStore(redis)
+        metric_store = MetricStore(redis)
         task_queue = PriorityQueue(redis, task_store)
 
         delayed = DelayedScheduler(redis, task_queue, task_store)
@@ -58,6 +59,7 @@ async def run() -> None:
                 handlers=create_registry(),
                 delayed=delayed,
                 task_store=task_store,
+                metric_store=metric_store,
                 dead_letter=dead_letter,
                 drain_timeout=config.drain_timeout
             )

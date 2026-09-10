@@ -6,7 +6,7 @@ from typing import Any
 
 from app.model import Task, TaskStatus, FailedTask
 from app.queue import PriorityQueue, DelayedScheduler
-from app.store import TaskStore, DeadLetterStore
+from app.store import TaskStore, DeadLetterStore, MetricStore
 
 
 class DuplicateTaskError(Exception):
@@ -24,15 +24,17 @@ def utc_now() -> datetime:
 class TaskService:
     def __init__(
         self,
-        task_store: TaskStore,
         task_queue: PriorityQueue,
         delayed_queue: DelayedScheduler,
         dead_letter: DeadLetterStore,
+        task_store: TaskStore,
+        metric_store: MetricStore,
     ) -> None:
         self.task_store = task_store
         self.task_queue = task_queue
         self.dead_letter = dead_letter
         self.delayed_queue = delayed_queue
+        self.metric_store = metric_store
 
     async def submit_task(
         self,
@@ -66,6 +68,9 @@ class TaskService:
             await self.delayed_queue.schedule(task, delay)
         else:
             await self.task_queue.enqueue(task)
+        
+        # increment submitted tasks count in metrics
+        await self.metric_store.incr_submitted()
 
         return task
 

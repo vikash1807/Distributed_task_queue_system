@@ -134,3 +134,18 @@ class Metrics(BaseModel):
             "queue_size": self.queue_size,
             "active_workers": self.active_workers,
         }
+
+class EnhancedMetrics(BaseModel):
+    metrics: Metrics = Field(default_factory=Metrics)
+    success_rate: float = 0.0
+    delayed_queue_size: int = 0
+    dead_letter_size: int = 0
+    total_submitted: int = 0
+
+    def to_dict(self) -> dict[str, Any]:
+        d = self.metrics.to_dict()
+        d["success_rate"] = self.success_rate
+        d["delayed_queue_size"] = self.delayed_queue_size
+        d["dead_letter_size"] = self.dead_letter_size
+        d["total_submitted"] = self.total_submitted
+        return d

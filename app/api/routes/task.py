@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse, Response
 from app.api.dependencies import get_task_service
 from app.api.schema import SubmitTaskRequest
 from app.model import TaskNotFound
-from app.service.task import DuplicateTaskError, TaskService
+from app.service import DuplicateTaskError, TaskService
 
 
 logger = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ def error_response(status_code: int, message: str) -> JSONResponse:
 
 
 def create_task_routes() -> APIRouter:
-    router = APIRouter(prefix="/tasks")
+    router = APIRouter(prefix="/tasks", tags=["task"])
 
     @router.post("")
     async def submit_task(
