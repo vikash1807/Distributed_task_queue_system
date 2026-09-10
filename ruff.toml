@@ -1,0 +1,55 @@
+# Ruff configuration
+
+# Set minimum Python version
+target-version = "py313"
+line-length = 100
+
+# Exclude specific directories
+exclude = [
+    ".venv",
+    ".git",
+    ".venv",
+    ".vscode",
+    "__pycache__",
+]
+
+[lint]
+
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes (includes unused imports, variables)
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "ARG",    # flake8-unused-arguments
+    "SIM",    # flake8-simplify
+]
+
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # do not perform function calls in argument defaults
+    "B905",   # zip without explicit strict parameter
+]
+
+# Allow fixing specific rules
+fixable = ["ALL"]
+unfixable = []
+
+[format]
+
+# Use double quotes for strings
+quote-style = "double"
+
+# Indent with spaces
+indent-style = "space"
+
+# Use trailing commas
+skip-magic-trailing-comma = false
+
+# Auto-detect line ending
+line-ending = "auto"
+
+
+
