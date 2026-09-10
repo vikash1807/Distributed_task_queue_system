@@ -8,7 +8,7 @@ from typing import Any, Dict, List
 
 import redis.asyncio as redis
 
-from app.model import Task, TaskStatus, TaskNotFound, parse_status
+from app.model import Task, TaskStatus, TaskNotFound
 from app.store.redis import key_task
 
 
@@ -51,9 +51,9 @@ def hash_to_task(data: Dict[str, Any]) -> Task:
             created_at = None
 
     try:
-        status = TaskStatus(data.get("status", "pending"))
+        task_status = TaskStatus(data.get("status", "pending"))
     except ValueError:
-        status = TaskStatus.PENDING
+        task_status = TaskStatus.PENDING
     
     return Task(
         id=data.get("id", ""),
@@ -63,7 +63,7 @@ def hash_to_task(data: Dict[str, Any]) -> Task:
         delay=int(data.get("delay") or 0),
         max_retries=int(data.get("max_retries") or 0),
         retries=int(data.get("retries") or 0),
-        status=parse_status(data.get("status", "pending")),
+        status=task_status,
         created_at=created_at,
         error=data.get("error", ""),
         owner=data.get("owner", ""),

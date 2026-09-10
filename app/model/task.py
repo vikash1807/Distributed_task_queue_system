@@ -2,30 +2,22 @@
 
 from __future__ import annotations
 
-import enum
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import datetime
+from enum import StrEnum
+from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class TaskNotFound(Exception):
     """Raised by ``TaskStore.get`` when no record exists for the given id."""
 
 
-class TaskStatus(str, enum.Enum):
+class TaskStatus(StrEnum):
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
     FAILED = "failed"
-
-
-def parse_status(s: str) -> TaskStatus:
-    """Parse a status string, defaulting to PENDING for empty/unknown values."""
-    try:
-        return TaskStatus(s or "pending")
-    except ValueError:
-        return TaskStatus.PENDING
 
 
 class Task(BaseModel):
@@ -37,87 +29,74 @@ class Task(BaseModel):
     max_retries: int = 0  # 0 = no retries
     retries: int = 0
     status: TaskStatus = TaskStatus.PENDING
-    created_at: Optional[datetime] = None
+    created_at: datetime | None = None
     error: str = ""
     owner: str = ""  # node ID currently leasing the task
 
+    @field_validator("status", mode="before")
+    @classmethod
+    def parse_status(cls, value: Any) -> TaskStatus:
+        if isinstance(value, TaskStatus):
+            return value
+
+        if not value or not isinstance(value, str):
+            return TaskStatus.PENDING
+
+        # If it's a string, clean it and try to parse it
+        try:
+            return TaskStatus(value.lower())
+        except ValueError:
+            return TaskStatus.PENDING
+
     def to_dict(self) -> dict[str, Any]:
-        d: dict[str, Any] = {}
-
-        d["id"] = self.id
-
-        if self.type:  # omit empty
-            d["type"] = self.type
-        if self.payload is not None:  # omit empty
-            d["payload"] = self.payload
-
-        d["priority"] = self.priority
-        d["delay"] = self.delay
-        d["max_retries"] = self.max_retries
-        d["retries"] = self.retries
-        d["status"] = self.status.value
-        d["created_at"] = (
-            self.created_at.isoformat() 
-            if self.created_at is not None 
-            else None
-        )
-        if self.error:  # omit empty
-            d["error"] = self.error
-        if self.owner:  # omit empty
-            d["owner"] = self.owner
-        return d
+        return self.model_dump(mode="json")
 
     @classmethod
-    def from_json_dict(cls, d: dict[str, Any]) -> "Task":
-        
-        created_at = d.get("created_at")
-        if created_at is not None:
-            created_at = datetime.fromisoformat(created_at)
-
-        return cls(
-            id=d.get("id", ""),
-            type=d.get("type", ""),
-            payload=d.get("payload"),
-            priority=int(d.get("priority", 0) or 0),
-            delay=int(d.get("delay", 0) or 0),
-            max_retries=int(d.get("max_retries", 0) or 0),
-            retries=int(d.get("retries", 0) or 0),
-            status=parse_status(d.get("status", "pending")),
-            created_at=created_at,
-            error=d.get("error", ""),
-            owner=d.get("owner", ""),
-        )
+    def from_json_dict(cls, d: dict[str, Any]) -> Task:
+        return cls.model_validate(d)
 
 
 class FailedTask(BaseModel):
     task: Task = Field(default_factory=Task)
-    failed_at: Optional[datetime] = None
+    failed_at: datetime | None = None
     reason: str = ""
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "task": self.task.to_dict(),
-            "failed_at": (
-                self.failed_at.isoformat() 
-                if self.failed_at is not None 
-                else None
-            ),
-            "reason": self.reason,
-        }
+        return self.model_dump(mode="json")
 
     @classmethod
-    def from_json_dict(cls, data: dict[str, Any]) -> "FailedTask":
-        failed_at = data.get("failed_at")
+    def from_json_dict(cls, data: dict[str, Any]) -> FailedTask:
+        return cls.model_validate(data)
 
-        if failed_at is not None:
-            failed_at = datetime.fromisoformat(failed_at)
 
-        return cls(
-            task=Task.from_json_dict(data.get("task", {})),
-            failed_at=failed_at,
-            reason=data.get("reason", ""),
-        )
-    
+class TaskEventType(StrEnum):
+    SUBMITTED = "submitted"
+    STARTED = "started"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    RETRYING = "retrying"
+    DEAD_LETTERED = "dead_lettered"
+    PROMOTED = "promoted"
+    RECLAIMED = "reclaimed"
+    NODE_JOINED = "node_joined"
+    NODE_DEAD = "node_dead"
+    REDRIVEN = "redriven"
+
+class TaskEvent(BaseModel):
+    id: str = ""
+    task_id: str = ""
+    type: TaskEventType | str = ""
+    worker_id: int = 0  # -1 for submit/scheduler/reaper (non-worker) events
+    detail: str = ""
+    timestamp: datetime | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return self.model_dump(mode="json")
+
+    @classmethod
+    def from_json_dict(cls, d: dict[str, Any]) -> TaskEvent:
+        return cls.model_validate(d)
+
 
 class Metrics(BaseModel):
     total_processed: int = 0
@@ -127,25 +106,11 @@ class Metrics(BaseModel):
     active_workers: int = 0
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "total_processed": self.total_processed,
-            "total_failed": self.total_failed,
-            "total_retries": self.total_retries,
-            "queue_size": self.queue_size,
-            "active_workers": self.active_workers,
-        }
+        return self.model_dump(mode="json")
 
-class EnhancedMetrics(BaseModel):
-    metrics: Metrics = Field(default_factory=Metrics)
+class EnhancedMetrics(Metrics):
+    """Extends Metrics directly to combine base and extended parameters into a single model."""
     success_rate: float = 0.0
     delayed_queue_size: int = 0
     dead_letter_size: int = 0
     total_submitted: int = 0
-
-    def to_dict(self) -> dict[str, Any]:
-        d = self.metrics.to_dict()
-        d["success_rate"] = self.success_rate
-        d["delayed_queue_size"] = self.delayed_queue_size
-        d["dead_letter_size"] = self.dead_letter_size
-        d["total_submitted"] = self.total_submitted
-        return d
