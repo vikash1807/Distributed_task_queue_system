@@ -1,20 +1,17 @@
 # Ruff configuration
 
-# Set minimum Python version
-target-version = "py313"
+target-version = "py313"  # Set minimum Python version
 line-length = 100
 
 # Exclude specific directories
 exclude = [
     ".venv",
     ".git",
-    ".venv",
     ".vscode",
     "__pycache__",
 ]
 
 [lint]
-
 select = [
     "E",      # pycodestyle errors
     "W",      # pycodestyle warnings
@@ -25,31 +22,23 @@ select = [
     "UP",     # pyupgrade
     "ARG",    # flake8-unused-arguments
     "SIM",    # flake8-simplify
+    "E501",   # line too long
 ]
-
 ignore = [
-    "E501",   # line too long (handled by formatter)
     "B008",   # do not perform function calls in argument defaults
     "B905",   # zip without explicit strict parameter
 ]
 
-# Allow fixing specific rules
+# Fixable settings belong inside the main [lint] table
 fixable = ["ALL"]
 unfixable = []
 
+# Sub-tables must come AFTER all top-level [lint] key-value pairs
+[lint.pycodestyle]
+ignore-overlong-task-comments = false
+
 [format]
-
-# Use double quotes for strings
-quote-style = "double"
-
-# Indent with spaces
-indent-style = "space"
-
-# Use trailing commas
-skip-magic-trailing-comma = false
-
-# Auto-detect line ending
-line-ending = "auto"
-
-
-
+quote-style = "double"  # Use double quotes for strings
+indent-style = "space"  # Indent with spaces
+skip-magic-trailing-comma = false  # Use trailing commas
+line-ending = "auto"  # Auto-detect line ending
