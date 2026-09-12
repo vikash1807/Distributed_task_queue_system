@@ -1,5 +1,4 @@
 # Distributed_task_queue_system
-# Distributed Task Queue System
 
 A Redis-backed distributed task queue built with Python, FastAPI, and asyncio.
 
