@@ -47,8 +47,8 @@ def create_task_routes() -> APIRouter:
                 f'task with id "{request.id}" already exists',
             )
         except Exception:
-            logger.exception("failed to submit task")
-            return error_response(500, "failed to submit task")
+            logger.exception("Task sumission failed.")
+            return error_response(500, "Task sumission failed.")
 
         return JSONResponse(
             content=jsonable_encoder(task.to_dict()),

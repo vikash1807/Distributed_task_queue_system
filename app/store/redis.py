@@ -1,11 +1,8 @@
 from __future__ import annotations
 
 import logging
-import sys
-from typing import Optional
 
 import redis.asyncio as redis
-
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +13,9 @@ KEY_DELAYED = "taskqueue:delayed"  # ZSET, score = execute-at (unix seconds)
 KEY_PROCESSING = "taskqueue:processing"  # ZSET, score = lease deadline (ms)
 KEY_DEADLETTER = "taskqueue:deadletter" # LIST of failedTask
 KEY_METRICS = "taskqueue:metrics"  # HASH of counters
+KEY_EVENTS = "taskqueue:events"  # LIST of TaskEvent JSON (trimmed to 200)
+KEY_EVENTS_CLUSTER = "taskqueue:events:cluster"  # LIST of lifecycle-only events
+KEY_WORKERS = "taskqueue:workers"  # HASH of legacy per-goroutine worker state
 KEY_NODES = "taskqueue:nodes"  # SET of known node IDs
 
 
@@ -35,10 +35,10 @@ def node_tasks_key(node_id: str) -> str:
 
 def new_redis(
     addr: str,
-    password: str, 
+    password: str,
     worker_count: int,
 ) -> redis.Redis:
-    
+
     host, _, port = addr.rpartition(":")
     if not host:  # addr had no ':' — treat the whole thing as the host
         host, port = addr, "6379"

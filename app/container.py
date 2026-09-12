@@ -8,39 +8,47 @@ import redis.asyncio as redis
 
 from app.core.config import Config
 from app.queue import PriorityQueue, DelayedScheduler
-from app.service import TaskService, MetricService
-from app.store import TaskStore, DeadLetterStore, MetricStore
+from app.service import TaskService, MetricService, EventService
+from app.store import TaskStore, DeadLetterStore, MetricStore, EventStore
 
 
 @dataclass
 class AppContainer:
     redis: redis.Redis
-    task_store: TaskStore
     task_queue: PriorityQueue
     delayed_scheduler: DelayedScheduler
     dead_letter: DeadLetterStore
+    event_store: EventStore
     metric_store: MetricStore
-    task_service: TaskService
+    task_store: TaskStore
+    event_service: EventService
     metric_service: MetricService
+    task_service: TaskService
 
 
 def build_container(client: redis.Redis, config: Config) -> AppContainer:
-    task_store = TaskStore(client)
-    task_queue = PriorityQueue(client, task_store)
-    
-    delayed_scheduler = DelayedScheduler(client, task_queue, task_store)
-    dead_letter = DeadLetterStore(client)
+    event_store = EventStore(client)
     metric_store = MetricStore(client)
+    task_store = TaskStore(client)
 
-
-    task_service = TaskService(
+    task_queue = PriorityQueue(client, task_store)
+    delayed_scheduler = DelayedScheduler(
+        client=client,
+        queue=task_queue,
         task_store=task_store,
+        event_store=event_store
+    )
+    dead_letter = DeadLetterStore(client)
+
+    event_service = EventService(event_store)
+    task_service = TaskService(
         task_queue=task_queue,
         delayed_queue=delayed_scheduler,
         dead_letter=dead_letter,
+        event_store=event_store,
         metric_store=metric_store,
+        task_store=task_store,
     )
-
     metric_service = MetricService(
         client=client,
         task_queue=task_queue,
@@ -52,8 +60,10 @@ def build_container(client: redis.Redis, config: Config) -> AppContainer:
         task_queue=task_queue,
         delayed_scheduler=delayed_scheduler,
         dead_letter=dead_letter,
-        task_store=task_store,
+        event_store=event_store,
         metric_store=metric_store,
-        task_service=task_service,
+        task_store=task_store,
+        event_service=event_service,
         metric_service=metric_service,
+        task_service=task_service,
     )

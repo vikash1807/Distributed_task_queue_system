@@ -77,7 +77,7 @@ class Pool:
                     continue
 
                 # A task was successfully claimed; execute it. 
-                await self.executor.execute(task)
+                await self.executor.execute(task, worker_id)
             
             except asyncio.CancelledError:
                 # Worker cancellation is expected during shutdown.
