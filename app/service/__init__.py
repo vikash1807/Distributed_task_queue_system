@@ -1,8 +1,10 @@
+from .events import EventService
 from .task import TaskService, DuplicateTaskError
-from .metric import MetricService
+from .metrics import MetricService
 
 __all__ = [
     "DuplicateTaskError",
+    "EventService",
     "MetricService",
     "TaskService",
 ]

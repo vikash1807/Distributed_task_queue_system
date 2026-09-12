@@ -12,12 +12,14 @@ from app.api.middleware import (
 )
 from app.api.routes.task import create_task_routes
 from app.api.routes.metrics import create_metrics_routes
+from app.api.routes.events import create_event_routes
 
 
 def create_api_router() -> APIRouter:
     api_router = APIRouter(prefix="/api")
     api_router.include_router(create_task_routes())
     api_router.include_router(create_metrics_routes())
+    api_router.include_router(create_event_routes())
 
     return api_router
 

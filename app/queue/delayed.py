@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import time
 import logging
+import secrets
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -11,9 +13,10 @@ import asyncio
 import redis.asyncio as redis
 
 from app.core import settings as config
-from app.model import Task
+from app.model import Task, TaskEvent, TaskEventType
 from app.queue.queue import PriorityQueue
 from app.store import (
+    EventStore,
     TaskStore,
     key_task,
     KEY_DELAYED,
@@ -38,10 +41,12 @@ class DelayedScheduler:
         client: redis.Redis,
         queue: PriorityQueue,
         task_store: TaskStore,
+        event_store: EventStore
     ) -> None:
         self.client = client
         self.queue = queue
         self.task_store = task_store
+        self.event_store = event_store
 
         self._promote = client.register_script(load_script("promote.lua"))
         self._retry = client.register_script(load_script("retry.lua"))
@@ -81,6 +86,18 @@ class DelayedScheduler:
 
                     if promoted:
                         logger.info("promoted %d delayed tasks", promoted)
+
+                        # Emit events for promoted tasks. Since the Lua script 
+                        # handles the batch atomically, we just emit a summary event.
+                        event = TaskEvent(
+                            id=f"evt-{secrets.token_hex(12)}",
+                            task_id="",
+                            type=TaskEventType.PROMOTED,
+                            worker_id=-1,
+                            detail=f"Promoted {promoted} task(s) from delayed to ready",
+                            timestamp=datetime.now(timezone.utc)
+                        )
+                        await self.event_store.push(event)
                 
                 except Exception:
                     logger.exception("error promoting delayed tasks.")

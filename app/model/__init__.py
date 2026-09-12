@@ -3,15 +3,19 @@ from .task import (
     FailedTask,
     Metrics,
     Task,
+    TaskEvent,
+    TaskEventType,
     TaskNotFound,
     TaskStatus,
 )
 
 __all__ = [
-    "Task",
-    "TaskStatus",
-    "TaskNotFound",
+    "EnhancedMetrics",
     "FailedTask",
     "Metrics",
-    "EnhancedMetrics"
+    "Task",
+    "TaskEvent",
+    "TaskEventType",
+    "TaskStatus",
+    "TaskNotFound",
 ]

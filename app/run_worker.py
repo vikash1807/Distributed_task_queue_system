@@ -10,7 +10,7 @@ from app.core.config import load_config
 from app.core.logging import setup_logging
 from app.handler import create_registry
 from app.queue import PriorityQueue, DelayedScheduler
-from app.store import new_redis, TaskStore, DeadLetterStore, MetricStore
+from app.store import new_redis, TaskStore, DeadLetterStore, MetricStore, EventStore
 from app.worker import Executor, ExecutorDeps, Pool
 
 setup_logging()
@@ -38,11 +38,18 @@ async def run() -> None:
         logger.info("connected to redis: %s", config.redis_addr)
 
         # Build application dependencies.
+        event_store = EventStore(redis)
         task_store = TaskStore(redis)
         metric_store = MetricStore(redis)
+
         task_queue = PriorityQueue(redis, task_store)
 
-        delayed = DelayedScheduler(redis, task_queue, task_store)
+        delayed = DelayedScheduler(
+            client=redis,
+            queue=task_queue,
+            event_store=event_store,
+            task_store=task_store,
+        )
         dead_letter = DeadLetterStore(redis)
 
         redis_broker = RedisBroker(
@@ -58,8 +65,9 @@ async def run() -> None:
                 broker=redis_broker,
                 handlers=create_registry(),
                 delayed=delayed,
-                task_store=task_store,
+                event_store=event_store,
                 metric_store=metric_store,
+                task_store=task_store,
                 dead_letter=dead_letter,
                 drain_timeout=config.drain_timeout
             )

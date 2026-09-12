@@ -56,17 +56,16 @@ class Task(BaseModel):
         return cls.model_validate(d)
 
 
-class FailedTask(BaseModel):
-    task: Task = Field(default_factory=Task)
+class FailedTask(Task):
+    status: TaskStatus = TaskStatus.FAILED
     failed_at: datetime | None = None
     reason: str = ""
 
-    def to_dict(self) -> dict[str, Any]:
-        return self.model_dump(mode="json")
-
+    @field_validator("status", mode="before")
     @classmethod
-    def from_json_dict(cls, data: dict[str, Any]) -> FailedTask:
-        return cls.model_validate(data)
+    def force_failed_status(cls, value: Any) -> TaskStatus:
+        """Always force status to FAILED for any FailedTask instance."""
+        return TaskStatus.FAILED
 
 
 class TaskEventType(StrEnum):
