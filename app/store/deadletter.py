@@ -21,18 +21,18 @@ class DeadLetterStore:
         self.client = client
         self._push = client.register_script(_DEADLETTER_LUA)
     
-    async def push(self, task: Task, failed_task: FailedTask):
+    async def push(self, failed_task: FailedTask):
         """
         Atomically update the task.status to failed and push a failed task onto the DLQ, newest task first."""
         
         await self._push(
             keys=[
-                key_task(task.id),
+                key_task(failed_task.id),
                 KEY_DEADLETTER
             ],
             args=[
-                task.status.value,
-                json.dumps(failed_task.to_dict(),)
+                failed_task.status.value,
+                failed_task.model_dump_json()
             ]
         )
 
