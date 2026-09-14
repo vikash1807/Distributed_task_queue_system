@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from app.model import TaskEvent
-from app.store.events import EventStore
+from app.store import EventStore
 
 
 class EventService:

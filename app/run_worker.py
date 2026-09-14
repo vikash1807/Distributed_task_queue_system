@@ -10,7 +10,7 @@ from app.core.config import load_config
 from app.core.logging import setup_logging
 from app.handler import create_registry
 from app.queue import PriorityQueue, DelayedScheduler
-from app.store import new_redis, TaskStore, DeadLetterStore, MetricStore, EventStore
+from app.store import new_redis, TaskStore, DeadLetterStore, MetricStore, EventStore, WorkerStateStore
 from app.worker import Executor, ExecutorDeps, Pool
 
 setup_logging()
@@ -41,6 +41,7 @@ async def run() -> None:
         event_store = EventStore(redis)
         task_store = TaskStore(redis)
         metric_store = MetricStore(redis)
+        worker_state = WorkerStateStore(redis)
 
         task_queue = PriorityQueue(redis, task_store)
 
@@ -67,6 +68,7 @@ async def run() -> None:
                 delayed=delayed,
                 event_store=event_store,
                 metric_store=metric_store,
+                worker_state=worker_state,
                 task_store=task_store,
                 dead_letter=dead_letter,
                 drain_timeout=config.drain_timeout
@@ -77,7 +79,8 @@ async def run() -> None:
             broker=redis_broker,
             executor=executor,
             worker_count=config.worker_count,
-            poll_interval=config.poll_interval
+            poll_interval=config.poll_interval,
+            worker_state=worker_state,
         )
 
         try:

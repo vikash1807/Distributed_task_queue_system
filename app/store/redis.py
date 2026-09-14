@@ -15,7 +15,7 @@ KEY_DEADLETTER = "taskqueue:deadletter" # LIST of failedTask
 KEY_METRICS = "taskqueue:metrics"  # HASH of counters
 KEY_EVENTS = "taskqueue:events"  # LIST of TaskEvent JSON (trimmed to 200)
 KEY_EVENTS_CLUSTER = "taskqueue:events:cluster"  # LIST of lifecycle-only events
-KEY_WORKERS = "taskqueue:workers"  # HASH of legacy per-goroutine worker state
+KEY_WORKERS = "taskqueue:workers"  # HASH of legacy per-executor worker state
 KEY_NODES = "taskqueue:nodes"  # SET of known node IDs
 
 

@@ -13,9 +13,9 @@ from datetime import datetime, timezone
 
 from app.broker import LeaseNotHeld, RedisBroker
 from app.handler import Registry
-from app.model import Task, TaskStatus, FailedTask, TaskEvent, TaskEventType
+from app.model import Task, TaskStatus, FailedTask, TaskEvent, TaskEventType, WorkerState
 from app.queue import DelayedScheduler
-from app.store import TaskStore, DeadLetterStore, MetricStore, EventStore
+from app.store import TaskStore, DeadLetterStore, MetricStore, EventStore, WorkerStateStore
 
 
 
@@ -41,6 +41,7 @@ class ExecutorDeps:
     event_store: EventStore
     task_store: TaskStore
     metric_store: MetricStore
+    worker_state: WorkerStateStore
     delayed: DelayedScheduler
     dead_letter: DeadLetterStore
     drain_timeout: float = DEFAULT_DRAIN_TIMEOUT
@@ -50,9 +51,12 @@ class Executor:
     def __init__(self, deps: ExecutorDeps) -> None:
         self.broker = deps.broker
         self.handlers = deps.handlers
+
         self.event_store = deps.event_store
         self.metric_store = deps.metric_store
         self.task_store = deps.task_store
+        self.worker_state = deps.worker_state
+
         self.delayed = deps.delayed
         self.dead_letter = deps.dead_letter
         self.drain_timeout = deps.drain_timeout
@@ -64,6 +68,16 @@ class Executor:
         logger.info(
             "executing task task_id=%s priority=%d attempt=%d max_attempt=%d",
             task.id, task.priority, task.retries + 1, task.max_retries + 1
+        )
+
+	    # Mark worker state as processing 
+        await self.worker_state.set(
+            WorkerState(
+                id=worker_id,
+                status="processing",
+                task_id=task.id,
+                started_at=utc_now()
+            )
         )
 
         await self._emit_event(
@@ -125,6 +139,14 @@ class Executor:
             )
 
             await self._handle_failure(task, worker_id)
+
+        # Return worker to idle.
+        await self.worker_state.set(
+            WorkerState(
+                id=worker_id,
+                status="idle"
+            )
+        )
 
     async def _handle_failure(self, task: Task, worker_id: int) -> None:
         """Route a failed task to retry or dead letter queue."""
