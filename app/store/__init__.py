@@ -1,6 +1,7 @@
 from .deadletter import DeadLetterStore
 from .events import EventStore
 from .metrics import MetricStore
+from .worker_state import WorkerStateStore
 
 from .redis import (
     KEY_DEADLETTER,
@@ -27,6 +28,7 @@ __all__ = [
     "EventStore",
     "MetricStore",
     "TaskStore",
+    "WorkerStateStore",
     "KEY_READY",
     "KEY_READY_SIGNAL",
     "KEY_PROCESSING",

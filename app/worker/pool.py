@@ -8,8 +8,10 @@ import asyncio
 import logging
 
 from app.broker import RedisBroker
-from app.worker.executor import Executor
 from app.core import settings as config
+from app.model import WorkerState
+from app.store import WorkerStateStore
+from app.worker.executor import Executor
 
 logger = logging.getLogger(__name__)
 
@@ -21,12 +23,15 @@ class Pool:
         executor: Executor,
         worker_count: int,
         poll_interval: float,
+        worker_state: WorkerStateStore
     ) -> None:
         
         self.broker = broker
         self.executor = executor
         self.worker_count = worker_count
         self.poll_interval = poll_interval
+
+        self.worker_state = worker_state
 
         self._stop = asyncio.Event()
         self._workers: list[asyncio.Task] = []
@@ -35,10 +40,21 @@ class Pool:
         """Launch the worker tasks. They run until ``stop`` is called."""
         self._stop.clear()
 
-        self._workers = [
-            asyncio.create_task(self._worker(worker_id))
-            for worker_id in range(self.worker_count)
-        ]
+        for worker_id in range(self.worker_count):
+            try:
+                await self.worker_state.set(
+                    WorkerState(
+                        id = worker_id,
+                        status = "idle",
+                    )
+                )
+            except Exception as exc:
+                pass
+
+            self._workers.append(
+                asyncio.create_task(self._worker(worker_id))
+            )
+
 
         logger.info(
             "worker pool started count=%d",

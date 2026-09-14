@@ -7,6 +7,7 @@ from .task import (
     TaskEventType,
     TaskNotFound,
     TaskStatus,
+    WorkerState,
 )
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "TaskEventType",
     "TaskStatus",
     "TaskNotFound",
+    "WorkerState",
 ]

@@ -113,3 +113,18 @@ class EnhancedMetrics(Metrics):
     delayed_queue_size: int = 0
     dead_letter_size: int = 0
     total_submitted: int = 0
+
+
+class WorkerState(BaseModel):
+    id: int = -1
+    status: str = "" #idle, processing
+    task_id: str = ""
+    started_at: datetime | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return self.model_dump(mode="json")
+    
+    @classmethod
+    def from_json_dict(cls, d: dict[str, Any]) -> WorkerState:
+        return cls.model_validate(d)
+
